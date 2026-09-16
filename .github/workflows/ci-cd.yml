@@ -20,11 +20,11 @@ jobs:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
 
-      # 2. Configurar Node.js 20 con caché de dependencias npm
-      - name: Configurar Node.js 20
+      # 2. Configurar Node.js 22 con caché de dependencias npm
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       # 3. Instalar dependencias y validar la compilación local
