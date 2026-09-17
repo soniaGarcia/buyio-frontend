@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getOrders, updateOrderStatus } from './api';
+import { getOrders, updateOrderStatus } from '../api/api';
 
 export function OrdersView({ onOpenCreateModal }) {
     const [orders, setOrders] = useState([]);
