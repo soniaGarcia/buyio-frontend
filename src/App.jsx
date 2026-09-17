@@ -4,9 +4,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import { OrdersView } from './views/OrdersView';
-import { ProductsView } from './views/ProductsView';
-import { SuppliersView } from './views/SuppliersView';
+import { OrdersView } from './pages/OrdersView';
+import { ProductsView } from './pages/ProductsView';
+import { SuppliersView } from './pages/SuppliersView';
 import AuditLogs from './pages/AuditLogs';
 
 export default function App() {
