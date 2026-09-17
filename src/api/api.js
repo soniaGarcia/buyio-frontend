@@ -1,60 +1,40 @@
-const API_CATALOG = 'http://localhost:8082/api/v1';
-const API_ORDERS = 'http://localhost:8083/api/v1';
+import axiosClient, { CATALOG_URL, ORDER_URL } from './axiosClient';
 
-function getAuthHeader() {
-    const token = localStorage.getItem('token');
-    return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-}
-
+// CATÁLOGOS (catalog-service:8082)
 export async function getSuppliers() {
-    const res = await fetch(`${API_CATALOG}/suppliers`, { headers: getAuthHeader() });
-    return res.json();
+    const response = await axiosClient.get(`${CATALOG_URL}/suppliers`);
+    return response.data;
 }
 
 export async function createSupplier(data) {
-    const res = await fetch(`${API_CATALOG}/suppliers`, {
-        method: 'POST',
-        headers: getAuthHeader(),
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    const response = await axiosClient.post(`${CATALOG_URL}/suppliers`, data);
+    return response.data;
 }
 
 export async function getProducts() {
-    const res = await fetch(`${API_CATALOG}/products`, { headers: getAuthHeader() });
-    return res.json();
+    const response = await axiosClient.get(`${CATALOG_URL}/products`);
+    return response.data;
 }
 
 export async function createProduct(data) {
-    const res = await fetch(`${API_CATALOG}/products`, {
-        method: 'POST',
-        headers: getAuthHeader(),
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    const response = await axiosClient.post(`${CATALOG_URL}/products`, data);
+    return response.data;
 }
 
+// ÓRDENES (order-service:8083)
 export async function getOrders() {
-    const res = await fetch(`${API_ORDERS}/orders`, { headers: getAuthHeader() });
-    return res.json();
+    const response = await axiosClient.get(ORDER_URL);
+    return response.data;
 }
 
 export async function createOrder(data) {
-    const res = await fetch(`${API_ORDERS}/orders`, {
-        method: 'POST',
-        headers: getAuthHeader(),
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    const response = await axiosClient.post(ORDER_URL, data);
+    return response.data;
 }
 
 export async function updateOrderStatus(orderId, status) {
-    const res = await fetch(`${API_ORDERS}/orders/${orderId}/status?status=${status}`, {
-        method: 'PATCH',
-        headers: getAuthHeader()
+    const response = await axiosClient.patch(`${ORDER_URL}/${orderId}/status`, null, {
+        params: { status }
     });
-    return res.json();
+    return response.data;
 }

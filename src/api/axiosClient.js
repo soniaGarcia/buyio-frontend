@@ -15,4 +15,16 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 }, (error) => Promise.reject(error));
 
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      // Si el token no es válido o venció, redirigir al login
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default axiosClient;
