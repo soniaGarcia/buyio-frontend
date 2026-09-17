@@ -1,71 +1,62 @@
 import { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axiosClient, { AUTH_URL } from '../api/axiosClient';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
-export default function Login() {
-  const [username, setUsername] = useState(''); // Cambiado de email a username
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+export default function LoginPage() {
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(null);
+    setLoading(true);
     try {
-      // Envía username y password al backend
-      const res = await axiosClient.post(`${AUTH_URL}/login`, { username, password });
-      
-      // Guarda los datos devueltos en el contexto de autenticación
-      login(res.data.token, {
-        username: res.data.username || username,
-        role: res.data.role,
-        userId: res.data.userId
-      });
-      
-      navigate('/products');
+      await login(credentials);
+      navigate('/orders');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al iniciar sesión');
+      setError(err.response?.data?.message || 'Error de conexión con Auth Service');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 bg-white p-8 rounded-lg shadow-md border border-gray-200">
-      <h2 className="text-2xl font-bold mb-6 text-center text-slate-800">Iniciar Sesión</h2>
-      {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de Usuario</label>
+    <div className="flex justify-center items-center h-screen bg-slate-100">
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-slate-800 text-center">BuyIO Platform</h2>
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded">{error}</div>}
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
           <input
             type="text"
             required
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Ej: usuario1"
+            className="w-[#100%] w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
+            value={credentials.username}
+            onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
           <input
             type="password"
             required
-            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
+            value={credentials.password}
+            onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
           />
         </div>
         <button
           type="submit"
-          className="w-full bg-indigo-600 text-white py-2 rounded font-semibold hover:bg-indigo-700 transition"
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-semibold transition disabled:opacity-50"
         >
-          Entrar
+          {loading ? 'Autenticando...' : 'Iniciar Sesión'}
         </button>
       </form>
-      <p className="mt-4 text-sm text-center text-gray-600">
-        ¿No tienes cuenta? <Link to="/register" className="text-indigo-600 hover:underline">Regístrate</Link>
-      </p>
     </div>
   );
 }

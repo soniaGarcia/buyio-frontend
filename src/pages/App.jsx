@@ -1,66 +1,37 @@
-import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import { OrdersView } from './views/OrdersView';
-import { SuppliersView } from './views/SuppliersView';
 import { ProductsView } from './views/ProductsView';
-import { CreateOrderModal } from './components/CreateOrderModal';
+import { SuppliersView } from './views/SuppliersView';
+import AuditLogs from './pages/AuditLogs';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('orders');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.reload();
-  };
-
   return (
-    <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
-      {/* Menu Principal de Navegacion */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0f172a', padding: '15px 30px', color: '#fff' }}>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>BuyIO Platform</h1>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <button 
-            onClick={() => setCurrentView('orders')} 
-            style={{ background: 'none', border: 'none', color: currentView === 'orders' ? '#60a5fa' : '#cbd5e1', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>
-            Órdenes
-          </button>
-          <button 
-            onClick={() => setCurrentView('products')} 
-            style={{ background: 'none', border: 'none', color: currentView === 'products' ? '#60a5fa' : '#cbd5e1', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>
-            Productos
-          </button>
-          <button 
-            onClick={() => setCurrentView('suppliers')} 
-            style={{ background: 'none', border: 'none', color: currentView === 'suppliers' ? '#60a5fa' : '#cbd5e1', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>
-            Proveedores
-          </button>
-          <button 
-            onClick={handleLogout} 
-            style={{ backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}>
-            Salir
-          </button>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-slate-100 text-slate-900 font-sans">
+          <Navbar />
+          <main className="max-w-7xl mx-auto p-6">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              <Route element={<ProtectedRoute />}>
+                <Route path="/orders" element={<OrdersView />} />
+                <Route path="/products" element={<ProductsView />} />
+                <Route path="/suppliers" element={<SuppliersView />} />
+                <Route path="/audit" element={<AuditLogs />} />
+              </Route>
+
+              <Route path="*" element={<Navigate to="/orders" replace />} />
+            </Routes>
+          </main>
         </div>
-      </nav>
-
-      {/* Renderizado Dinamico de Vistas */}
-      <main style={{ maxWidth: '1200px', margin: '30px auto', background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        {currentView === 'orders' && (
-          <OrdersView onOpenCreateModal={() => setShowCreateModal(true)} />
-        )}
-        {currentView === 'products' && <ProductsView />}
-        {currentView === 'suppliers' && <SuppliersView />}
-      </main>
-
-      {/* Modal de Creacion Maestro-Detalle */}
-      {showCreateModal && (
-        <CreateOrderModal 
-          onClose={() => setShowCreateModal(false)} 
-          onSuccess={() => {
-            setShowCreateModal(false);
-            setCurrentView('orders');
-          }} 
-        />
-      )}
-    </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

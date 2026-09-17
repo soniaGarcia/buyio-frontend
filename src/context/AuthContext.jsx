@@ -1,4 +1,5 @@
 import { createContext, useState } from 'react';
+import { loginApi } from '../api/services';
 
 export const AuthContext = createContext();
 
@@ -9,11 +10,16 @@ export const AuthProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = (newToken, userData) => {
-    setToken(newToken);
-    setUser(userData);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = async (credentials) => {
+    // Autenticación estricta contra el microservicio auth-service
+    const data = await loginApi(credentials); 
+    if (!data.token) {
+      throw new Error('Respuesta de autenticación inválida');
+    }
+    setToken(data.token);
+    setUser(data.user);
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
   };
 
   const logout = () => {
@@ -24,7 +30,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, isAuthenticated: !!token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
