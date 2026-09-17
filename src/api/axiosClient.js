@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
 
-// Constantes exportadas para compatibilidad con vistas legacy
+// Constantes exportadas para compatibilidad con vistas legacy (AuditLogs, Products, etc.)
 export const AUTH_URL = `${BASE_URL}/auth`;
 export const CATALOG_URL = `${BASE_URL}/catalog/products`;
 export const ORDER_URL = `${BASE_URL}/orders`;
@@ -32,7 +32,9 @@ axiosClient.interceptors.response.use(
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

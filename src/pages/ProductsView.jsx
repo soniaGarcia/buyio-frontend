@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProducts, createProduct, getSuppliers } from '../api/api';
-
-const API_CATALOG = 'http://localhost:8082/api/v1';
+import { getProducts, createProduct, getSuppliers, updateProductPrice } from '../api/api';
 
 export function ProductsView() {
     const [products, setProducts] = useState([]);
@@ -15,8 +13,8 @@ export function ProductsView() {
     const [error, setError] = useState('');
 
     const loadData = () => {
-        getProducts().then(setProducts);
-        getSuppliers().then(setSuppliers);
+        getProducts().then(data => setProducts(Array.isArray(data) ? data : [])).catch(console.error);
+        getSuppliers().then(data => setSuppliers(Array.isArray(data) ? data : [])).catch(console.error);
     };
 
     useEffect(() => { loadData(); }, []);
@@ -41,16 +39,10 @@ export function ProductsView() {
         const newPrice = prompt('Ingrese el nuevo precio para este producto:');
         if (!newPrice || isNaN(newPrice)) return;
 
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_CATALOG}/products/${productId}/prices`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(parseFloat(newPrice))
-        });
-
-        if (res.ok) {
+        try {
+            await updateProductPrice(productId, parseFloat(newPrice));
             loadData();
-        } else {
+        } catch (err) {
             alert('Error al actualizar el precio.');
         }
     };
@@ -73,9 +65,9 @@ export function ProductsView() {
                 <button type="submit" style={{ gridColumn: 'span 2' }}>Guardar Producto</button>
             </form>
 
-            <table border="1" cellPadding="8" style={{ width: '100%' }}>
+            <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                    <tr>
+                    <tr style={{ backgroundColor: '#f2f2f2' }}>
                         <th>SKU</th>
                         <th>Nombre</th>
                         <th>Categoría</th>
@@ -85,18 +77,21 @@ export function ProductsView() {
                     </tr>
                 </thead>
                 <tbody>
-                    {products.map(p => (
-                        <tr key={p.id}>
-                            <td>{p.sku}</td>
-                            <td>{p.name}</td>
-                            <td>{p.category}</td>
-                            <td>{p.supplierTaxId}</td>
-                            <td><strong>${p.currentPrice ? p.currentPrice.toFixed(2) : '0.00'}</strong></td>
-                            <td>
-                                <button onClick={() => handleUpdatePrice(p.id)}>Cambiar Precio</button>
-                            </td>
-                        </tr>
-                    ))}
+                    {products.map(p => {
+                        const displayPrice = p.currentPrice ?? p.price ?? 0;
+                        return (
+                            <tr key={p.id}>
+                                <td>{p.sku}</td>
+                                <td>{p.name}</td>
+                                <td>{p.category}</td>
+                                <td>{p.supplierTaxId || 'N/A'}</td>
+                                <td><strong>${typeof displayPrice === 'number' ? displayPrice.toFixed(2) : '0.00'}</strong></td>
+                                <td>
+                                    <button onClick={() => handleUpdatePrice(p.id)}>Cambiar Precio</button>
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

@@ -1,25 +1,34 @@
 import { createContext, useState } from 'react';
-import { loginApi } from '../api/services';
+import { loginApi } from '../api/api';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
+  
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser && savedUser !== 'undefined' ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      localStorage.removeItem('user');
+      return null;
+    }
   });
 
   const login = async (credentials) => {
-    // Autenticación estricta contra el microservicio auth-service
     const data = await loginApi(credentials); 
     if (!data.token) {
       throw new Error('Respuesta de autenticación inválida');
     }
+    
+    const userPayload = data.user || { username: credentials.username };
+    
     setToken(data.token);
-    setUser(data.user);
+    setUser(userPayload);
+    
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('user', JSON.stringify(userPayload));
   };
 
   const logout = () => {
