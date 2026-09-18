@@ -17,7 +17,7 @@ export default function LoginPage() {
       await login(credentials);
       navigate('/orders');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error de conexión con Auth Service');
+      setError(err.response?.data?.message || 'Error de conexión con el servicio de autenticación. Por favor, inténtelo de nuevo más tarde.');
     } finally {
       setLoading(false);
     }

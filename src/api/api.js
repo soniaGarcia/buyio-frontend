@@ -17,12 +17,18 @@ export const createOrder = (data) =>
 export const updateOrderStatus = (id, status) =>
   axiosClient.patch(`/orders/${id}/status`, null, { params: { status } }).then((r) => r.data);
 
-// Catálogo y Proveedores
+// Catálogo, Categorías y Proveedores
 export const getSuppliers = () => 
   axiosClient.get('/catalog/suppliers').then((r) => r.data);
 
 export const createSupplier = (data) => 
   axiosClient.post('/catalog/suppliers', data).then((r) => r.data);
+
+export const getCategories = () => 
+  axiosClient.get('/catalog/categories').then((r) => r.data);
+
+export const createCategory = (data) => 
+  axiosClient.post('/catalog/categories', data).then((r) => r.data);
 
 export const getProducts = () => 
   axiosClient.get('/catalog/products').then((r) => r.data);
