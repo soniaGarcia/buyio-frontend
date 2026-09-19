@@ -25,12 +25,6 @@ export const getSuppliers = () =>
 export const createSupplier = (data) => 
   axiosClient.post('/catalog/suppliers', data).then((r) => r.data);
 
-export const getCategories = () => 
-  axiosClient.get('/catalog/categories').then((r) => r.data);
-
-export const createCategory = (data) => 
-  axiosClient.post('/catalog/categories', data).then((r) => r.data);
-
 export const getProducts = () => 
   axiosClient.get('/catalog/products').then((r) => r.data);
 
@@ -43,3 +37,20 @@ export const updateProductPrice = (id, price) =>
 // Bitácora de Auditoría
 export const getAuditLogs = () => 
   axiosClient.get('/audit-logs').then((r) => r.data);
+
+// Categorías
+export const getCategories = (activeOnly = false) => 
+  axiosClient.get(`/categories?activeOnly=${activeOnly}`).then(r => r.data);
+
+export const createCategory = (data) => 
+  axiosClient.post('/categories', data).then(r => r.data);
+
+export const updateCategoryStatus = (id, active) => 
+  axiosClient.patch(`/categories/${id}/status?active=${active}`).then(r => r.data);
+
+// Productos & Historial
+export const updateProductStatus = (id, status) => 
+  axiosClient.patch(`/products/${id}/status?status=${status}`).then(r => r.data);
+
+export const getPriceHistory = (productId) => 
+  axiosClient.get(`/products/${productId}/prices`).then(r => r.data);
