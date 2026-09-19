@@ -40,17 +40,17 @@ export const getAuditLogs = () =>
 
 // Categorías
 export const getCategories = (activeOnly = false) => 
-  axiosClient.get(`/categories?activeOnly=${activeOnly}`).then(r => r.data);
+  axiosClient.get(`/catalog/categories?activeOnly=${activeOnly}`).then(r => r.data);
 
 export const createCategory = (data) => 
-  axiosClient.post('/categories', data).then(r => r.data);
+  axiosClient.post('/catalog/categories', data).then(r => r.data);
 
 export const updateCategoryStatus = (id, active) => 
-  axiosClient.patch(`/categories/${id}/status?active=${active}`).then(r => r.data);
+  axiosClient.patch(`/catalog/categories/${id}/status?active=${active}`).then(r => r.data);
 
-// Productos & Historial
+//PRODUCTOS & HISTORIAL (Corregido con prefijo /catalog)
 export const updateProductStatus = (id, status) => 
-  axiosClient.patch(`/products/${id}/status?status=${status}`).then(r => r.data);
+  axiosClient.patch(`/catalog/products/${id}/status?status=${status}`).then(r => r.data);
 
 export const getPriceHistory = (productId) => 
-  axiosClient.get(`/products/${productId}/prices`).then(r => r.data);
+  axiosClient.get(`/catalog/products/${productId}/prices`).then(r => r.data);

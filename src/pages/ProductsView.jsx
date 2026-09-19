@@ -71,9 +71,12 @@ export function ProductsView() {
     const handleOpenHistory = async (product) => {
         try {
             const history = await getPriceHistory(product.id);
-            setPriceHistoryList(history);
+            // Normalización defensiva de datos
+            const safeList = Array.isArray(history) ? history : (history?.content || []);
+            setPriceHistoryList(safeList);
             setSelectedProductForHistory(product);
         } catch (err) {
+            console.error('Error al consultar historial de precios:', err);
             alert('Error al obtener el historial de precios.');
         }
     };
@@ -236,19 +239,29 @@ export function ProductsView() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y text-xs text-slate-700">
-                                    {priceHistoryList.map(ph => (
-                                        <tr key={ph.id} className="hover:bg-slate-50">
-                                            <td className="py-2.5 font-bold">${ph.unitPrice?.toFixed(2)}</td>
-                                            <td className="py-2.5">{ph.currency}</td>
-                                            <td className="py-2.5">{ph.validFrom ? new Date(ph.validFrom).toLocaleString() : 'N/A'}</td>
-                                            <td className="py-2.5">{ph.validTo ? new Date(ph.validTo).toLocaleString() : 'Vigente'}</td>
-                                            <td className="py-2.5 text-center">
-                                                <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${ph.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                                                    {ph.isActive ? 'ACTIVO' : 'HISTÓRICO'}
-                                                </span>
+                                    {Array.isArray(priceHistoryList) && priceHistoryList.length > 0 ? (
+                                        priceHistoryList.map(ph => (
+                                            <tr key={ph.id} className="hover:bg-slate-50">
+                                                <td className="py-2.5 font-bold">
+                                                    ${typeof ph.unitPrice === 'number' ? ph.unitPrice.toFixed(2) : ph.unitPrice}
+                                                </td>
+                                                <td className="py-2.5">{ph.currency || 'USD'}</td>
+                                                <td className="py-2.5">{ph.validFrom ? new Date(ph.validFrom).toLocaleString() : 'N/A'}</td>
+                                                <td className="py-2.5">{ph.validTo ? new Date(ph.validTo).toLocaleString() : 'Vigente'}</td>
+                                                <td className="py-2.5 text-center">
+                                                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${ph.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                                                        {ph.isActive ? 'ACTIVO' : 'HISTÓRICO'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="py-4 text-center text-slate-500">
+                                                No hay registros de precios para este producto.
                                             </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>
