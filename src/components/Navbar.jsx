@@ -62,7 +62,14 @@ export default function Navbar() {
             >
               Catálogo de Productos
             </Link>
-
+            <Link
+              to="/categories"
+              className={`px-3 py-2 rounded-md text-sm font-semibold transition ${
+                isActive('/categories') ? 'bg-orange-600 text-white shadow' : 'hover:bg-blue-800 text-blue-100'
+              }`}
+            >
+              Categorías
+            </Link>
             <Link
               to="/suppliers"
               className={`px-3 py-2 rounded-md text-sm font-semibold transition ${
