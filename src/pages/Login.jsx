@@ -17,46 +17,57 @@ export default function LoginPage() {
       await login(credentials);
       navigate('/orders');
     } catch (err) {
-      setError(err.response?.data?.message || 'Error de conexión con el servicio de autenticación. Por favor, inténtelo de nuevo más tarde.');
+      setError(err.response?.data?.message || 'Error de conexión con el servicio de autenticación.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-slate-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-slate-800 text-center">BuyIO Platform</h2>
-        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded">{error}</div>}
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
-          <input
-            type="text"
-            required
-            className="w-[#100%] w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
-            value={credentials.username}
-            onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-          />
+    <div className="min-h-[80vh] flex justify-center items-center">
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
+        <div className="bg-[#003876] text-white p-6 text-center border-b border-blue-900">
+          <div className="bg-orange-600 text-white font-black text-2xl tracking-tighter inline-block px-3 py-1 rounded-md mb-2">
+            BUYIO
+          </div>
+          <h2 className="text-xl font-bold">Portal de Gestión Ferretera</h2>
+          <p className="text-xs text-blue-200 mt-1">Ingrese sus credenciales corporativas para continuar</p>
         </div>
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-          <input
-            type="password"
-            required
-            className="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none"
-            value={credentials.password}
-            onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded font-semibold transition disabled:opacity-50"
-        >
-          {loading ? 'Autenticando...' : 'Iniciar Sesión'}
-        </button>
-      </form>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md">{error}</div>}
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Usuario</label>
+            <input
+              type="text"
+              required
+              className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
+              value={credentials.username}
+              onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Contraseña</label>
+            <input
+              type="password"
+              required
+              className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
+              value={credentials.password}
+              onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-2.5 rounded-lg shadow transition disabled:opacity-50"
+          >
+            {loading ? 'Autenticando...' : 'Ingresar al Sistema'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

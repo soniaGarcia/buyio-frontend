@@ -1,21 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { getSuppliers, getProducts, createOrder } from '../api/api';
+import { getSuppliers, getProducts, createOrder, updateOrderStatus } from '../api/api';
 
-export function CreateOrderModal({ onClose, onSuccess }) {
+export function CreateOrderModal({ orderToEdit, onClose, onSuccess }) {
     const [suppliers, setSuppliers] = useState([]);
     const [products, setProducts] = useState([]);
     const [supplierId, setSupplierId] = useState('');
     const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
     const [items, setItems] = useState([]);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const isEditMode = Boolean(orderToEdit);
+    const isReadOnly = isEditMode; // Dado que la API solo expone PATCH para cambio de estado
 
     useEffect(() => {
-        getSuppliers().then(setSuppliers);
-        getProducts().then(setProducts);
-    }, []);
+        Promise.all([getSuppliers(), getProducts()])
+            .then(([suppliersData, productsData]) => {
+                setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
+                setProducts(Array.isArray(productsData) ? productsData : []);
+            })
+            .catch(() => setError('Error al cargar catálogo de referencia.'));
+
+        if (orderToEdit) {
+            setSupplierId(orderToEdit.supplierId || '');
+            setExpectedDeliveryDate(orderToEdit.expectedDeliveryDate || '');
+            if (Array.isArray(orderToEdit.items) && orderToEdit.items.length > 0) {
+                setItems(orderToEdit.items.map(i => ({
+                    productId: i.productId,
+                    quantity: i.quantity,
+                    unitPrice: i.unitPrice
+                })));
+            } else {
+                setItems([]);
+            }
+        }
+    }, [orderToEdit]);
 
     const addItem = () => {
         setItems([...items, { productId: '', quantity: 1, unitPrice: 0 }]);
+    };
+
+    const removeItem = (index) => {
+        setItems(items.filter((_, i) => i !== index));
     };
 
     const updateItem = (index, field, value) => {
@@ -23,76 +49,244 @@ export function CreateOrderModal({ onClose, onSuccess }) {
         newItems[index][field] = value;
         if (field === 'productId') {
             const prod = products.find(p => p.id === value);
-            if (prod) newItems[index].unitPrice = prod.currentPrice;
+            if (prod) {
+                newItems[index].unitPrice = prod.currentPrice ?? prod.price ?? 0;
+            }
         }
         setItems(newItems);
     };
 
     const calculateTotal = () => {
-        return items.reduce((acc, item) => acc + (item.quantity * item.unitPrice || 0), 0).toFixed(2);
+        return items.reduce((acc, item) => acc + (parseFloat(item.quantity || 0) * parseFloat(item.unitPrice || 0)), 0).toFixed(2);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
         if (!supplierId || !expectedDeliveryDate || items.length === 0) {
-            setError('Complete todos los campos obligatorios y agregue al menos un producto.');
+            setError('Complete el proveedor, la fecha de ingreso requerida y agregue al menos un producto.');
             return;
         }
+
+        const invalidItems = items.some(i => !i.productId || i.quantity <= 0 || i.unitPrice <= 0);
+        if (invalidItems) {
+            setError('Verifique que los productos tengan cantidad y precio mayores a 0.');
+            return;
+        }
+
+        setLoading(true);
         try {
-            await createOrder({
+            const payload = {
                 supplierId,
                 expectedDeliveryDate,
                 items: items.map(i => ({
                     productId: i.productId,
-                    quantity: parseInt(i.quantity),
+                    quantity: parseInt(i.quantity, 10),
                     unitPrice: parseFloat(i.unitPrice)
                 }))
-            });
+            };
+
+            await createOrder(payload);
             onSuccess();
             onClose();
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.message || 'Error al procesar la orden de compra.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStatusTransition = async (targetStatus) => {
+        if (!orderToEdit?.id) return;
+        setLoading(true);
+        try {
+            await updateOrderStatus(orderToEdit.id, targetStatus);
+            onSuccess();
+            onClose();
+        } catch (err) {
+            setError(`No se pudo cambiar el estado a ${targetStatus}.`);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', padding: '20px' }}>
-            <div style={{ background: '#fff', padding: '20px', maxWidth: '600px', margin: 'auto', borderRadius: '8px' }}>
-                <h3>Nueva Orden de Compra</h3>
-                {error && <p style={{ color: 'red' }}>{error}</p>}
-                <form onSubmit={handleSubmit}>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden my-8">
+                {/* Header del Modal */}
+                <div className="bg-[#003876] text-white px-6 py-4 flex justify-between items-center">
                     <div>
-                        <label>Proveedor: </label>
-                        <select value={supplierId} onChange={e => setSupplierId(e.target.value)} required>
-                            <option value="">Seleccione...</option>
-                            {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.taxId})</option>)}
-                        </select>
+                        <h3 className="text-xl font-bold flex items-center gap-2">
+                            <span>📦</span>
+                            {isEditMode ? `Detalle de Orden (UUID: ${orderToEdit.id?.substring(0, 8)}...)` : 'Nueva Orden de Compra'}
+                        </h3>
+                        <p className="text-xs text-blue-200 mt-0.5">
+                            {isEditMode ? `Estado actual: ${orderToEdit.status}` : 'Estado inicial al guardar: INGRESADO'}
+                        </p>
                     </div>
-                    <div style={{ marginTop: '10px' }}>
-                        <label>Fecha Estimada de Ingreso: </label>
-                        <input type="date" value={expectedDeliveryDate} onChange={e => setExpectedDeliveryDate(e.target.value)} required />
-                    </div>
+                    <button onClick={onClose} className="text-slate-300 hover:text-white text-2xl font-bold">&times;</button>
+                </div>
 
-                    <h4>Detalle de Productos</h4>
-                    {items.map((item, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '5px' }}>
-                            <select value={item.productId} onChange={e => updateItem(index, 'productId', e.target.value)} required>
-                                <option value="">Producto...</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                            <input type="number" min="1" value={item.quantity} onChange={e => updateItem(index, 'quantity', e.target.value)} placeholder="Cant" style={{ width: '60px' }} required />
-                            <input type="number" step="0.01" value={item.unitPrice} onChange={e => updateItem(index, 'unitPrice', e.target.value)} placeholder="Precio" style={{ width: '80px' }} required />
-                            <span>Subtotal: ${(item.quantity * item.unitPrice || 0).toFixed(2)}</span>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2">
+                            <span>⚠️</span> {error}
                         </div>
-                    ))}
-                    <button type="button" onClick={addItem} style={{ marginTop: '5px' }}>+ Agregar Producto</button>
+                    )}
 
-                    <h3 style={{ textAlign: 'right' }}>Total: ${calculateTotal()}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Proveedor Requerido</label>
+                            <select
+                                value={supplierId}
+                                onChange={e => setSupplierId(e.target.value)}
+                                disabled={isReadOnly}
+                                className="w-full p-2.5 bg-white border border-slate-300 rounded-md text-sm text-slate-800 disabled:bg-slate-100"
+                                required
+                            >
+                                <option value="">-- Seleccionar Proveedor --</option>
+                                {suppliers.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} ({s.taxId || 'Sin NIT'})</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button type="button" onClick={onClose}>Cancelar</button>
-                        <button type="submit">Guardar Orden</button>
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-slate-700 mb-1">Fecha Ingreso Requerida</label>
+                            <input
+                                type="date"
+                                value={expectedDeliveryDate}
+                                onChange={e => setExpectedDeliveryDate(e.target.value)}
+                                disabled={isReadOnly}
+                                className="w-full p-2.5 bg-white border border-slate-300 rounded-md text-sm text-slate-800 disabled:bg-slate-100"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Partidas de Productos */}
+                    <div>
+                        <div className="flex justify-between items-center mb-3">
+                            <h4 className="font-bold text-slate-800 text-sm uppercase">Partidas de Productos</h4>
+                            {!isReadOnly && (
+                                <button
+                                    type="button"
+                                    onClick={addItem}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-md shadow"
+                                >
+                                    + Agregar Producto
+                                </button>
+                            )}
+                        </div>
+
+                        {items.length === 0 ? (
+                            <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-lg text-slate-400 text-sm">
+                                No hay partidas asociadas.
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {items.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                        <select
+                                            value={item.productId}
+                                            onChange={e => updateItem(index, 'productId', e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="flex-1 p-2 border border-slate-300 rounded text-xs disabled:bg-slate-100"
+                                            required
+                                        >
+                                            <option value="">Seleccione Producto...</option>
+                                            {products.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name} ({p.sku || 'SKU N/A'})</option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={item.quantity}
+                                            onChange={e => updateItem(index, 'quantity', e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="w-20 p-2 border border-slate-300 rounded text-xs text-center disabled:bg-slate-100"
+                                            required
+                                        />
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={item.unitPrice}
+                                            onChange={e => updateItem(index, 'unitPrice', e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="w-24 p-2 border border-slate-300 rounded text-xs text-right disabled:bg-slate-100"
+                                            required
+                                        />
+                                        <span className="w-24 text-right font-bold text-xs">
+                                            ${(parseFloat(item.quantity || 0) * parseFloat(item.unitPrice || 0)).toFixed(2)}
+                                        </span>
+                                        {!isReadOnly && (
+                                            <button type="button" onClick={() => removeItem(index)} className="text-red-500 font-bold px-2">✕</button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Resumen */}
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+                        <span className="text-xs text-slate-500">Monto Total Calculado</span>
+                        <span className="text-2xl font-black text-blue-900">${calculateTotal()}</span>
+                    </div>
+
+                    {/* Flujo de Transiciones de Estado según Enum */}
+                    <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                        <div className="flex gap-2">
+                            {isEditMode && orderToEdit.status === 'INGRESADO' && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleStatusTransition('SOLICITADO')}
+                                    disabled={loading}
+                                    className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded shadow"
+                                >
+                                    📤 Pasar a SOLICITADO
+                                </button>
+                            )}
+
+                            {isEditMode && orderToEdit.status === 'SOLICITADO' && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleStatusTransition('RECIBIDA')}
+                                    disabled={loading}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow"
+                                >
+                                    ✓ Marcar como RECIBIDA
+                                </button>
+                            )}
+
+                            {isEditMode && (orderToEdit.status === 'INGRESADO' || orderToEdit.status === 'SOLICITADO') && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleStatusTransition('ANULADA')}
+                                    disabled={loading}
+                                    className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded shadow"
+                                >
+                                    🚫 Anular Orden
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-700 font-semibold text-xs rounded">
+                                Cerrar
+                            </button>
+                            {!isReadOnly && (
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs px-5 py-2 rounded shadow disabled:opacity-50"
+                                >
+                                    {loading ? 'Procesando...' : 'Guardar (INGRESADO)'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </form>
             </div>
