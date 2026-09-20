@@ -99,7 +99,7 @@ export function OrdersView() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-[#003876] text-white text-xs uppercase tracking-wider">
-                                <th className="p-4">UUID Orden</th>
+                                <th className="p-4">N° Orden</th>
                                 <th className="p-4">Fecha Creación</th>
                                 <th className="p-4">Fecha Ingreso Requerida</th>
                                 <th className="p-4 text-right">Total ($)</th>
@@ -119,8 +119,8 @@ export function OrdersView() {
                             ) : (
                                 filteredOrders.map(o => (
                                     <tr key={o.id} className="hover:bg-slate-50 transition">
-                                        <td className="p-4 font-mono font-bold text-blue-900 text-xs" title={o.id}>
-                                            {o.id ? `${o.id.substring(0, 8)}...` : 'N/A'}
+                                        <td className="p-4 font-mono font-bold text-blue-900 text-xs" title={`UUID: ${o.id}`}>
+                                            {o.orderNumber || (o.id ? `${o.id.substring(0, 8)}...` : 'N/A')}
                                         </td>
                                         <td className="p-4 text-xs text-slate-600">
                                             {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'}
