@@ -28,28 +28,72 @@ export function ProductsView() {
 
     useEffect(() => { loadData(); }, []);
 
+    const validateForm = () => {
+        if (!sku.trim()) {
+            setError('El SKU es obligatorio.');
+            return false;
+        }
+        if (!name.trim()) {
+            setError('El nombre comercial del producto es obligatorio.');
+            return false;
+        }
+        if (!categoryId) {
+            setError('Debe seleccionar una categoría activa.');
+            return false;
+        }
+        if (!price || isNaN(price)) {
+            setError('El precio inicial es obligatorio y debe ser un valor numérico.');
+            return false;
+        }
+        const numericPrice = parseFloat(price);
+        if (numericPrice <= 0) {
+            setError('El precio inicial debe ser mayor a 0.');
+            return false;
+        }
+        if (!supplierId) {
+            setError('Debe seleccionar un proveedor.');
+            return false;
+        }
+
+        setError('');
+        return true;
+    };
+
     const handleCreateProduct = async (e) => {
         e.preventDefault();
         setError(''); setSuccess('');
+
+        if (!validateForm()) return;
+
         try {
             await createProduct({
-                sku, name, description, categoryId, supplierId,
+                sku: sku.trim(),
+                name: name.trim(),
+                description: description.trim(),
+                categoryId,
+                supplierId,
                 price: parseFloat(price)
             });
             setSku(''); setName(''); setDescription(''); setCategoryId(''); setSupplierId(''); setPrice('');
             setSuccess('Producto registrado como ACTIVO correctamente.');
             loadData();
         } catch (err) {
-            setError(err.response?.data?.message || 'Error al crear el producto.');
+            setError(err.response?.data?.message || err.response?.data?.error || 'Error al crear el producto.');
         }
     };
 
     const handleUpdatePrice = async (productId) => {
         const newPrice = prompt('Ingrese el nuevo precio activo para este producto (USD):');
-        if (!newPrice || isNaN(newPrice) || parseFloat(newPrice) <= 0) return;
+        if (!newPrice) return;
+        
+        const parsedPrice = parseFloat(newPrice);
+        if (isNaN(parsedPrice) || parsedPrice <= 0) {
+            alert('El precio debe ser un número válido mayor a 0.');
+            return;
+        }
 
         try {
-            await updateProductPrice(productId, { unitPrice: parseFloat(newPrice), currency: 'USD' });
+            await updateProductPrice(productId, { unitPrice: parsedPrice, currency: 'USD' });
             loadData();
         } catch (err) {
             alert('Error al actualizar el precio.');
@@ -71,7 +115,6 @@ export function ProductsView() {
     const handleOpenHistory = async (product) => {
         try {
             const history = await getPriceHistory(product.id);
-            // Normalización defensiva de datos
             const safeList = Array.isArray(history) ? history : (history?.content || []);
             setPriceHistoryList(safeList);
             setSelectedProductForHistory(product);
@@ -96,58 +139,96 @@ export function ProductsView() {
                 {success && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 text-xs rounded-lg border border-emerald-200">✓ {success}</div>}
 
                 <form onSubmit={handleCreateProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                        placeholder="SKU Único (ej. ING-8801)"
-                        value={sku}
-                        onChange={e => setSku(e.target.value)}
-                        className="p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                        required
-                    />
-                    <input
-                        placeholder="Nombre Comercial del Producto"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        className="p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                        required
-                    />
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                            SKU Único <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            placeholder="SKU Único (ej. ING-8801)"
+                            value={sku}
+                            onChange={e => setSku(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
 
-                    <select
-                        value={categoryId}
-                        onChange={e => setCategoryId(e.target.value)}
-                        className="p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                        required
-                    >
-                        <option value="">-- Seleccione Categoría Activa --</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                            Nombre Comercial <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            placeholder="Nombre Comercial del Producto"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
 
-                    <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Precio Inicial ($ USD)"
-                        value={price}
-                        onChange={e => setPrice(e.target.value)}
-                        className="p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                        required
-                    />
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                            Categoría Activa <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={categoryId}
+                            onChange={e => setCategoryId(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600 bg-white"
+                            required
+                        >
+                            <option value="">-- Seleccione Categoría Activa --</option>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
 
-                    <select
-                        value={supplierId}
-                        onChange={e => setSupplierId(e.target.value)}
-                        className="md:col-span-2 p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                        required
-                    >
-                        <option value="">-- Seleccione Proveedor --</option>
-                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.taxId || 'Sin NIT'})</option>)}
-                    </select>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                            Precio Inicial ($ USD) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            placeholder="Precio Inicial ($ USD)"
+                            value={price}
+                            onKeyDown={(e) => {
+                                // Previene la entrada de exponente 'e', 'E', '+' y '-'
+                                if (['e', 'E', '+', '-'].includes(e.key)) {
+                                    e.preventDefault();
+                                }
+                            }}
+                            onChange={e => setPrice(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
 
-                    <textarea
-                        placeholder="Descripción detallada del producto..."
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                        className="md:col-span-2 p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
-                        rows="2"
-                    />
+                    <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                            Proveedor <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={supplierId}
+                            onChange={e => setSupplierId(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600 bg-white"
+                            required
+                        >
+                            <option value="">-- Seleccione Proveedor --</option>
+                            {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.taxId || s.tax_id || 'Sin NIT'})</option>)}
+                        </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
+                            Descripción <span className="text-slate-400 font-normal">(Opcional)</span>
+                        </label>
+                        <textarea
+                            placeholder="Descripción detallada del producto..."
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-600"
+                            rows="2"
+                        />
+                    </div>
 
                     <button type="submit" className="md:col-span-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm py-2.5 rounded-lg shadow transition">
                         Guardar Producto en Catálogo (ACTIVE)
